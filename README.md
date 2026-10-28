@@ -1,4 +1,7 @@
-# Agentic Graph-RAG Support System Prototype
+# Agentic Graph-RAG Support System — Prototype v1.0
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23727940.svg)](https://doi.org/10.5281/zenodo.23727940)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A stateful, agentic Retrieval-Augmented Generation system that answers support queries
 against a **Neo4j** knowledge graph. The pipeline fuses three retrieval strategies
@@ -773,7 +776,11 @@ time rather than vendoring it. See <https://huggingface.co/datasets/Wix/WixQA>.
 
 ## Citation
 
-If you use this code, please cite the accompanying paper:
+This repository is archived on Zenodo with a permanent DOI:
+**[10.5281/zenodo.23727940](https://doi.org/10.5281/zenodo.23727940)**
+(the concept DOI always resolves to the latest release).
+
+If you use this code, please cite it as:
 
 ```bibtex
 @misc{poggemann2026agenticgraphrag,
@@ -781,6 +788,7 @@ If you use this code, please cite the accompanying paper:
   title        = {Agentic Graph-RAG for Support Question Answering},
   year         = {2026},
   note         = {Prototype v1.0},
-  howpublished = {\url{https://github.com/<user>/<repo>}}
+  howpublished = {\url{https://github.com/JanisPog/agentic-graph-rag}},
+  doi          = {10.5281/zenodo.23727940}
 }
 ```

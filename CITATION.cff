@@ -1,0 +1,45 @@
+cff-version: 1.2.0
+title: >-
+  Agentic Graph-RAG: Query-Conditional Retrieval Planning with a PIVOT
+  Reasoning Loop
+message: >-
+  If you use this software, please cite both the software and the
+  accompanying paper.
+type: software
+authors:
+  - given-names: Janis
+    family-names: Poggemann
+    affiliation: FH Münster University of Applied Sciences
+repository-code: https://github.com/JanisPog/agentic-graph-rag
+doi: 10.5281/zenodo.23727940
+abstract: >-
+  A stateful agentic Retrieval-Augmented Generation system over a Neo4j
+  knowledge graph. A planner activates per-query retrieval arms (dense,
+  BM25, graph-PPR, optional web search), RRF fusion and a cross-encoder
+  reranker narrow the candidate set, CRAG grading gates context quality,
+  and a PIVOT loop (Plan, Inspect, eVOlve, Verify) admits a retry only
+  when an untried method is expected to score strictly higher. Queries
+  that cannot be answered are deferred with a structured payload.
+  Evaluated on the WixQA enterprise-support benchmark.
+keywords:
+  - retrieval-augmented generation
+  - graph-rag
+  - knowledge graph
+  - information retrieval
+  - agentic systems
+  - neo4j
+  - large language models
+license: MIT
+version: 1.0.0
+date-released: "2026-10-28"
+preferred-citation:
+  type: article
+  title: >-
+    Knowing When, How and Where to Retrieve: Query-Goal-Inspected,
+    Multi-Method and Graph-Aware Retrieval Planning and Optimization in
+    Agentic Graph-RAG Systems
+  authors:
+    - given-names: Janis
+      family-names: Poggemann
+      affiliation: FH Münster University of Applied Sciences
+  year: 2026
