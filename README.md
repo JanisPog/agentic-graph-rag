@@ -1,6 +1,7 @@
 # Agentic Graph-RAG Support System — Prototype v1.0
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23727940.svg)](https://doi.org/10.5281/zenodo.23727940)
+[![Paper](https://img.shields.io/badge/Paper-10.5281%2Fzenodo.23728139-b31b1b.svg)](https://doi.org/10.5281/zenodo.23728139)
+[![Code DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23727940.svg)](https://doi.org/10.5281/zenodo.23727940)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A stateful, agentic Retrieval-Augmented Generation system that answers support queries
@@ -776,18 +777,37 @@ time rather than vendoring it. See <https://huggingface.co/datasets/Wix/WixQA>.
 
 ## Citation
 
-This repository is archived on Zenodo with a permanent DOI:
-**[10.5281/zenodo.23727940](https://doi.org/10.5281/zenodo.23727940)**
-(the concept DOI always resolves to the latest release).
+Both the paper and this code are archived on Zenodo with permanent DOIs:
 
-If you use this code, please cite it as:
+| Artifact | DOI |
+|---|---|
+| Paper | [10.5281/zenodo.23728139](https://doi.org/10.5281/zenodo.23728139) |
+| Code (this repository) | [10.5281/zenodo.23727940](https://doi.org/10.5281/zenodo.23727940) |
+
+The code DOI is a concept DOI and always resolves to the latest release.
+
+If you use this work, please cite the paper:
 
 ```bibtex
-@misc{poggemann2026agenticgraphrag,
+@misc{poggemann2026knowingwhen,
+  author = {Poggemann, Janis},
+  title  = {Knowing When, How and Where to Retrieve:
+            Query-Goal-Inspected, Multi-Method and Graph-Aware Retrieval
+            Planning and Optimization in Agentic Graph-RAG Systems},
+  year   = {2026},
+  note   = {FH M\"unster University of Applied Sciences},
+  doi    = {10.5281/zenodo.23728139}
+}
+```
+
+To cite the software itself:
+
+```bibtex
+@software{poggemann2026agenticgraphrag,
   author       = {Poggemann, Janis},
   title        = {Agentic Graph-RAG for Support Question Answering},
   year         = {2026},
-  note         = {Prototype v1.0},
+  version      = {1.0.0},
   howpublished = {\url{https://github.com/JanisPog/agentic-graph-rag}},
   doi          = {10.5281/zenodo.23727940}
 }
