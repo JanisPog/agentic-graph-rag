@@ -1,4 +1,4 @@
-# Agentic Graph-RAG Support System — Prototype v1.0
+# Agentic Graph-RAG Support System Prototype
 
 A stateful, agentic Retrieval-Augmented Generation system that answers support queries
 against a **Neo4j** knowledge graph. The pipeline fuses three retrieval strategies
