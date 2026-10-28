@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+.env
+data/generated/
+data/mappings/
+*.pyc
+
+# Third-party WixQA corpus — not redistributed; see README (copy it in yourself,
+# or fetch it with `python etl/download_wixqa.py --kb` from the repo root).
+data/raw/*.csv

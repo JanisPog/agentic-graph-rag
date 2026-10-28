@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+
+# Git
+.git/
+.gitignore
+
+# Data (large CSVs — mount as a volume if needed for ETL)
+data/
+archive.zip
+
+# Docs / planning
+docs/
+*.md
+*.pdf
+retrieval_improvements.txt
+system_description.txt
+
+# Dev / evaluation
+evaluate/
+diagnose.py
+export_wixqa.py
+
+# Secrets — injected at runtime via docker-compose env_file
+.env
+
+# IDE / OS
+.claude/
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

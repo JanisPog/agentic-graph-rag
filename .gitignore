@@ -1,0 +1,45 @@
+# ── Secrets ──────────────────────────────────────────────────────────────────
+# Never commit real credentials; `.env.example` is the tracked template.
+.env
+.env.local
+*.pem
+*.key
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ── Virtual environments ─────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Local tooling / editors ──────────────────────────────────────────────────
+.claude/
+.idea/
+.vscode/
+.DS_Store
+
+# ── Build & scratch artefacts ────────────────────────────────────────────────
+archive.zip
+*.log
+docs/logs.txt
+docs/plantuml.jar
+
+# ── Data & derived indexes ───────────────────────────────────────────────────
+# The WixQA corpora are downloaded via `etl/download_wixqa.py`; the BM25 index
+# is rebuilt by the ingest pipeline. Neither belongs in version control.
+data/*.pkl
+data/wix_kb_corpus.csv
+data/wixqa_*.csv
+
+# ── Internal working notes & raw run dumps (not part of the release) ─────────
+docs/agentic_planning_suggestions.md
+docs/agentic_rag_comparison.md
+docs/wixqa_results.md
+docs/wixqa_results_output.txt
+docs/wixqa_500_results.txt

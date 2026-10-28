@@ -1,0 +1,58 @@
+{
+  "name": "graph-rag-agent",
+  "description": "Agentic Graph-RAG support agent backed by Neo4j + LangGraph + vLLM. Answers support queries using semantic, BM25, and graph-based retrieval with CRAG quality gating and a ReAct reasoning loop.",
+  "supported_interfaces": [
+    {
+      "url": "http://localhost:8015/",
+      "protocol_binding": "JSONRPC",
+      "protocol_version": "1.0"
+    }
+  ],
+  "provider": {
+    "organization": "Prototype v1.0",
+    "url": "http://localhost:8015"
+  },
+  "version": "1.0.0",
+  "capabilities": {
+    "streaming": true,
+    "push_notifications": false
+  },
+  "default_input_modes": [
+    "application/json",
+    "text/plain"
+  ],
+  "default_output_modes": [
+    "application/json"
+  ],
+  "skills": [
+    {
+      "id": "graph_rag_search",
+      "name": "Graph-RAG Knowledge Search",
+      "description": "Answers support queries using a retrieval-augmented generation pipeline with semantic (dense), BM25 (sparse), and graph-based (PPR) retrieval, RRF fusion, vLLM cross-encoder reranking, CRAG quality gating, and a ReAct reasoning loop. Returns a cited answer with confidence score. When the query cannot be answered due to missing context or out-of-domain intent, the agent defers the query: it sets task state to TASK_STATE_INPUT_REQUIRED and returns a structured deferral payload containing a ready-to-speak clarification_prompt, the specific information gaps, and a deferral_reason object. The caller must speak the clarification_prompt to the user and re-submit with the same context_id once additional information is available.",
+      "tags": [
+        "search",
+        "knowledge-base",
+        "support",
+        "rag",
+        "graph",
+        "neo4j",
+        "deferral",
+        "input-required"
+      ],
+      "examples": [
+        "How do I reset my password?",
+        "My login keeps failing after the recent update.",
+        "How do I delete a payment method and set the currency for a course?"
+      ],
+      "input_modes": [
+        "application/json",
+        "text/plain"
+      ],
+      "output_modes": [
+        "application/json"
+      ]
+    }
+  ],
+  "security_schemes": {},
+  "security_requirements": []
+}

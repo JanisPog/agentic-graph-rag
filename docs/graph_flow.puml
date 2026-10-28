@@ -1,0 +1,197 @@
+@startuml Graph Agent Flow
+!theme cerulean-outline
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam ArrowColor #4A7C9E
+skinparam ActivityBorderColor #4A7C9E
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #F9A825
+skinparam PartitionBorderColor #AAAAAA
+skinparam PartitionBackgroundColor #F9F9F9
+
+title Graph Agent Flow — Prototype v1.0\n<size:11><color:#888>Boxes marked ★ PLANNING can trigger agents from higher in the graph</color></size>
+
+skinparam ActivityBackgroundColor<<planning>> #FFE0B2
+skinparam ActivityBorderColor<<planning>> #E65100
+skinparam ActivityFontColor<<planning>> #BF360C
+
+skinparam ActivityBackgroundColor<<retrieval>> #E3F2FD
+skinparam ActivityBorderColor<<retrieval>> #1565C0
+
+skinparam ActivityBackgroundColor<<fusion>> #E8F5E9
+skinparam ActivityBorderColor<<fusion>> #2E7D32
+
+skinparam ActivityBackgroundColor<<crag>> #F3E5F5
+skinparam ActivityBorderColor<<crag>> #6A1B9A
+
+skinparam ActivityBackgroundColor<<react>> #FFF3E0
+skinparam ActivityBorderColor<<react>> #E65100
+
+skinparam ActivityBackgroundColor<<terminal>> #ECEFF1
+skinparam ActivityBorderColor<<terminal>> #455A64
+
+start
+
+' ══════════════════════════════════════════
+'  PHASE 1 – Query Understanding
+' ══════════════════════════════════════════
+partition "Phase 1 · Query Understanding" {
+  :query_decomposer\nSplit compound query → sub_queries (max 4)\nAtomic query → [original_query]<<retrieval>>;
+
+  :query_expander\nParaphrase × 3  +  HyDE × 1  per sub-query\nDedup → expanded_queries<<retrieval>>;
+
+  :intent_classifier  ★ PLANNING\nThink about what the user actually wants\nOutput: intent · plan (reasoning trace)<<planning>>;
+
+  note right
+    ★ PLANNING
+    Intent categories determine the
+    entire downstream pipeline shape:
+
+    · general_question → docs only
+      (skip graph retriever & ReFlaCT)
+    · issue → full graph flow
+      (all retrievers + ReFlaCT loop)
+    · repeated_issue → search user's
+      past tickets first, then full flow
+    · unclear → escalate immediately
+
+    Outputs a short plan string
+    explaining the reasoning.
+  end note
+
+  if (intent?) then (general_question)
+    -[#1565C0]-> [docs only];
+  elseif (issue) then
+    -[#2E7D32]-> [full graph flow];
+  elseif (repeated_issue) then
+    -[#E65100]-> [past tickets first];
+  else (unclear)
+    -[#C62828]-> ;
+    :escalation_handler\nIntent unclear — ask user for clarification<<terminal>>;
+    stop
+  endif
+}
+
+' ══════════════════════════════════════════
+'  PHASE 2 – Parallel Retrieval
+' ══════════════════════════════════════════
+partition "Phase 2 · Parallel Retrieval" {
+  note left
+    Scope controlled by intent:
+    · general_question → semantic + BM25 on
+      documentation chunks only
+    · repeated_issue   → add past-ticket
+      retriever before the fan-out below
+    · issue            → full fan-out
+  end note
+
+  fork
+    :semantic_retriever\nEmbed expanded_queries → ANN on\nChunk.embedding (cosine, top-20)\n[On CRAG retry: prepend missing_hint]<<retrieval>>;
+  fork again
+    :bm25_retriever\nLucene fulltext on expanded_queries\nMin-max normalise scores (top-20)<<retrieval>>;
+  end fork
+
+  :graph_retriever\nTop-3 semantic seeds → 2-hop PPR\n(NEXT_CHUNK 0.9 / RELATED_TO 0.7 / ENTITY 0.5)\nReturn 20 non-seed nodes by PPR rank\n[Skipped for general_question intent]<<retrieval>>;
+}
+
+' ══════════════════════════════════════════
+'  PHASE 3 – Fusion & Ranking
+' ══════════════════════════════════════════
+partition "Phase 3 · Fusion & Ranking" {
+  :rrf_fusion\nRRF across 3 lists  (k=60)\nTop-30 unique chunks\n[Clears hit accumulators for clean retry]<<fusion>>;
+
+  :reranker\ncross-encoder/ms-marco-MiniLM-L-6-v2\nRe-score & keep top-10<<fusion>>;
+}
+
+' ══════════════════════════════════════════
+'  PHASE 4 – CRAG Context Quality
+' ══════════════════════════════════════════
+partition "Phase 4 · CRAG — Context Quality Assessment" {
+  :crag_grader\nRecall Judge (LLM) · Precision Judge (LLM)\nquality = 0.7×recall + 0.3×precision\nOutputs: verdict · missing_hint · retry count<<crag>>;
+
+  note right
+    ★ PLANNING
+    crag_grader decides to loop back
+    to Phase 2 (semantic_retriever)
+    with a refined missing_hint,
+    effectively re-planning retrieval.
+    Max 2 retries.
+  end note
+
+  if (crag_verdict?) then (sufficient ≥ 0.70)
+  elseif (retry  0.40–0.69  &&  retries < 2) then
+    -[#E65100]-> [PLANNING: re-retrieve];
+    :semantic_retriever\n(retry with missing_hint focus)<<planning>>;
+    note right: Loops back to Phase 2 → Phase 3
+    -[#E65100]-> ;
+    detach
+  else (escalate  < 0.40  or  retries exhausted)
+    -[#C62828]-> ;
+    :escalation_handler\nFormat structured notice\n(quality score + missing info)<<terminal>>;
+    stop
+  endif
+}
+
+' ══════════════════════════════════════════
+'  PHASE 5 – ReFlaCT Loop  (replaces ReAct)
+' ══════════════════════════════════════════
+partition "Phase 5 · ReFlaCT Loop  (max 2 iterations)  [replaces ReAct]" {
+
+  note left
+    ReFlaCT = Reflect → Fetch → Check → Think
+    Extends ReAct with an explicit reflection
+    step before each action, allowing the agent
+    to critique its own previous observations
+    before deciding the next retrieval move.
+    Skipped when intent = general_question.
+  end note
+
+  repeat
+    :reflact_thinker\nReflect on scratchpad + critique gaps\nChoose action: semantic_search |\nbm25_search | graph_hop | no_action\nSpecify sub_query<<react>>;
+
+    note right
+      ★ PLANNING
+      reflact_thinker selects WHICH retrieval
+      strategy to invoke (semantic / BM25 /
+      graph) — re-entering Phase 2 agents
+      on demand. Also detects pivot needed.
+    end note
+
+    :reflact_actor\nExecute chosen action\n· semantic_search  → embed + ANN (top-10)\n· bm25_search      → fulltext (top-10)\n· graph_hop        → 2-hop from top-5 seeds\n· no_action        → no new hits\nMerge with reranked_hits<<react>>;
+
+    note right
+      ★ PLANNING
+      reflact_actor calls Phase 2 retrieval
+      agents (semantic / BM25 / graph)
+      mid-loop, driven by reflact_thinker's
+      plan.
+    end note
+
+    :reflact_observer\nTopological pivot detection\n(normalise & check seen sub_queries)\nGoal check on final iteration (LLM):\n"Is context sufficient to answer?"<<react>>;
+
+  repeat while (goal_achieved=False  &&  iterations < 2) is (continue) not (done / max reached)
+
+}
+
+' ══════════════════════════════════════════
+'  PHASE 6 – Generation
+' ══════════════════════════════════════════
+partition "Phase 6 · Generation" {
+  :generator\nMulti-Hop Synthesis (LLM)\nInline citations [P1],[P2]…\nOutputs: final_answer · cited_chunk_ids · confidence<<terminal>>;
+}
+
+stop
+
+legend right
+  |= Colour          |= Meaning |
+  |<#E3F2FD> blue   | Retrieval agents |
+  |<#E8F5E9> green  | Fusion & ranking |
+  |<#F3E5F5> purple | CRAG grader |
+  |<#FFF3E0> orange | ReFlaCT loop |
+  |<#FFE0B2> amber  | ★ PLANNING — shapes or re-enters higher phases |
+  |<#ECEFF1> grey   | Terminal nodes |
+endlegend
+
+@enduml

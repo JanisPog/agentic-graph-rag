@@ -1,0 +1,84 @@
+@startuml ETL Pipeline
+!theme cerulean-outline
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 13
+skinparam ArrowColor #4A7C9E
+skinparam ActivityBorderColor #4A7C9E
+
+title ETL Pipeline — Prototype v1.0
+
+|#E8F4F8|Input|
+|#EAF5EA|Schema & Load|
+|#FFF8E1|Per-Row Processing|
+|#F3EFF9|Embedding|
+|#FCE8E8|Neo4j Write|
+
+|Input|
+start
+:CSV / JSON / JSONL files\n(primary ± secondary);
+
+|Schema & Load|
+:SchemaDetectorAgent (LLM)\nDetect column roles\n(id, question, answer, title, ref, ...);
+:Filter & Deduplicate rows\nApply status filter, --limit cap;
+note right
+  Override via
+  --archetype ticket|qa|kb_article
+end note
+
+|Per-Row Processing|
+fork
+  :ID Extraction\nparse or hash doc_id;
+fork again
+  :Chunker v2\nSplit into semantic chunks\n(problem / resolution / question /\nanswer / body / section)\nAttach context_prefix + embed_text;
+fork again
+  :Document Record\n(id, source_id, title,\ndoc_type, timestamps);
+fork again
+  :Metadata Builder\nExtract structured fields\n(priority, category, product ...);
+end fork
+
+:Entity Extraction — NER v2\n1 · Metadata fields  (conf 1.0)\n2 · Regex  (error codes, versions, URLs, conf 0.90-0.95)\n3 · LLM full-mode  (product, system, procedure, conf 0.80)\nDeduplicate → keep highest confidence;
+
+:Create MENTIONS edges\n(Chunk → Entity)\nDerive Concept nodes\nCreate BELONGS_TO edges\n(Entity → Concept);
+
+|Embedding|
+if (--no-embed?) then (no)
+  :Batch embed all chunks\nvia embed_text field\nBackend: Ollama / Gemini / LiteLLM\n(nomic-embed-text 768d  or  qwen3 4096d);
+else (yes)
+  :Skip embedding;
+endif
+
+|Neo4j Write|
+:Init DB\nApply constraints + indexes\n(vector, fulltext, B-tree);
+
+:Write DataSource nodes;
+:Write Document nodes\n+ HAS_METADATA → Metadata;
+:Write Chunk nodes\n(with embeddings)\n+ PART_OF → Document;
+:Write NEXT_CHUNK edges\n(problem_resolution / qa / sequential);
+:Write Entity + Concept nodes\nMENTIONS edges (Chunk → Entity)\nBELONGS_TO edges (Entity → Concept);
+
+if (secondary dataset?) then (yes)
+  :Write REFERENCES edges\nPrimary Document → Secondary Document\n(via ref_field join);
+else (no)
+endif
+
+if (SAGE enabled?) then (yes)
+  :SAGE Edge Builder\nSemantic similarity between chunks\nCreate RELATED_TO edges\n(top-K, min_score 0.88, p95 filter);
+else (no)
+endif
+
+:Summary log\n(node counts + edge type counts);
+stop
+
+|Input|
+legend right
+  |= Node Type      |= Edge Types |
+  | Document        | FROM_SOURCE, HAS_METADATA |
+  | Chunk           | PART_OF, NEXT_CHUNK, RELATED_TO |
+  | Entity          | MENTIONS (from Chunk) |
+  | Concept         | BELONGS_TO (from Entity) |
+  | Metadata        | — |
+  | DataSource      | — |
+endlegend
+
+@enduml

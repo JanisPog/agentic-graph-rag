@@ -1,0 +1,65 @@
+services:
+
+  # ── Neo4j knowledge graph ────────────────────────────────────────────────────
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: graph_rag_neo4j
+    restart: unless-stopped
+    ports:
+      - "7474:7474"   # Browser UI
+      - "7687:7687"   # Bolt
+    environment:
+      NEO4J_AUTH: "${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-neo4j}"
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_memory_heap_initial__size: "1g"
+      NEO4J_dbms_memory_heap_max__size: "4g"
+      NEO4J_dbms_memory_pagecache_size: "1g"
+      # Per-transaction memory cap. The default (~1.4 GiB) was hit by a large
+      # DETACH DELETE during --clear; raise it for big ingests / full wipes.
+      NEO4J_dbms_memory_transaction_total_max: "4g"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "${NEO4J_USER:-neo4j}", "-p", "${NEO4J_PASSWORD:-neo4j}", "RETURN 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 30s
+
+  # ── Graph-RAG A2A agent ───────────────────────────────────────────────────────
+  graph-rag-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: graph_rag_agent
+    restart: unless-stopped
+    ports:
+      - "8015:8015"
+    env_file:
+      - .env
+    environment:
+      # Point Neo4j at the compose service, not localhost
+      NEO4J_URI: "neo4j://neo4j:7687"
+      A2A_HOST: "0.0.0.0"
+      A2A_PORT: "8015"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+    volumes:
+      - ./data:/app/data:ro
+      # evaluate/ is excluded from the image via .dockerignore (dev/eval tooling).
+      # Mount it at runtime so the WixQA benchmark + eval runners are available.
+      # Read-write so result CSVs / summary.json can be written back to the host.
+      - ./evaluate:/app/evaluate
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8015/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
